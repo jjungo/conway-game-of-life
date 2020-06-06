@@ -21,8 +21,8 @@ public:
 	    , _shape(sf::Vector2f(_size, _size)) {
 
 		_shape.setPosition(_pos_x * _size, _pos_y * _size);
-//		_shape.setOutlineThickness(0.8);
-//		_shape.setOutlineColor(sf::Color::Green);
+		//		_shape.setOutlineThickness(0.8);
+		//		_shape.setOutlineColor(sf::Color::Green);
 	}
 
 public:
@@ -82,14 +82,11 @@ private:
 
 		int index = x + y * _grid_width;
 
+		_next_generation[index] = _current_generation[index];
 		if (_current_generation[index] == alive && (neib < 2 || neib > 3)) {
 			_next_generation[index] = dead;
-		} else if (_current_generation[index] == alive && (neib >= 2 && neib <= 3)) {
+		} else if (neib == 3) {
 			_next_generation[index] = alive;
-		} else if (_current_generation[index] == dead && (neib == 3)) {
-			_next_generation[index] = alive;
-		} else {
-			_next_generation[index] = _current_generation[index];
 		}
 	}
 
