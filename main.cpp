@@ -35,6 +35,22 @@ public:
 	}
 };
 
+class simple_rand_generator {
+private:
+	std::random_device _rd;
+	std::mt19937 _gen;
+	std::uniform_int_distribution<> _distrib;
+
+public:
+	simple_rand_generator(int min, int max)
+	    : _gen(_rd())
+	    , _distrib(min, max) {}
+
+	int get_next_rand() {
+		return _distrib(_gen);
+	}
+};
+
 class tile_map {
 
 private:
@@ -47,9 +63,8 @@ private:
 	int *_current_generation;
 	int *_next_generation;
 
-	std::random_device rd;
-	std::mt19937 gen;
-	std::uniform_int_distribution<> distrib;
+	simple_rand_generator _rand_gen;
+
 	enum cell_status {
 		dead = 0,
 		alive
@@ -59,14 +74,64 @@ private:
 		return _current_generation[x + y * _grid_width] == alive;
 	}
 
+	void get_next_gen_when_cell_is_alive(int x, int y, int n_neighbour_alive) const {
+		if (n_neighbour_alive < 2 || n_neighbour_alive > 3) {
+			_next_generation[x + y * _grid_width] = dead;
+
+		} else if (n_neighbour_alive >= 2 && n_neighbour_alive <= 3) {
+			_next_generation[x + y * _grid_width] = alive;
+		} else {
+			_next_generation[x + y * _grid_width] = _current_generation[x + y * _grid_width];
+		}
+	}
+
+	void get_next_gen_when_cell_is_dead(int x, int y, int n_neighbour_alive) const {
+		if (n_neighbour_alive == 3) {
+			_next_generation[x + y * _grid_width] = alive;
+		} else {
+			_next_generation[x + y * _grid_width] = _current_generation[x + y * _grid_width];
+		}
+	}
+
+	void generate_next_cell(int x, int y) const {
+		int n_neighbours = 0;
+		int i = -1;
+		if (x == 0) {
+			i = 0;
+		}
+		for (; i < 2; i++) {
+
+			int j = -1;
+			if (y == 0) {
+				j = 0;
+			}
+			for (; j < 2; j++) {
+
+				if (j == 0 && i == 0)
+					continue;
+
+				int index = (x + i) + (y + j) * _grid_width;
+				if (_current_generation[index] == alive) {
+					n_neighbours++;
+				}
+
+				if (_current_generation[x + y * _grid_width] == alive) {
+					get_next_gen_when_cell_is_alive(x, y, n_neighbours);
+
+				} else {
+					get_next_gen_when_cell_is_dead(x, y, n_neighbours);
+				}
+			}
+		}
+	}
+
 public:
 	tile_map(sf::RenderWindow &window, int cell_size, int grid_width, int grid_height)
 	    : _window(window)
 	    , _cell_size(cell_size)
 	    , _grid_width(grid_width)
 	    , _grid_height(grid_height)
-	    , gen(rd())
-	    , distrib(0, _n_cells) {
+	    , _rand_gen(0, _n_cells) {
 
 		_current_generation = new int[_n_cells];
 		memset(_current_generation, 0, _n_cells * sizeof(*_current_generation));
@@ -81,8 +146,8 @@ public:
 	}
 
 	void on_click(int mx, int my) {
-		int x = double(mx) / _cell_size;
-		int y = double(my) / _cell_size;
+		int x = mx / _cell_size;
+		int y = my / _cell_size;
 		if (x >= 0 && x < _grid_width && y >= 0 && y < _grid_height) {
 			_current_generation[x + y * _grid_width] = !_current_generation[x + y * _grid_width];
 		}
@@ -101,80 +166,15 @@ public:
 	}
 
 	void enable_random_cell() {
-		auto n = distrib(gen);
+		auto n = _rand_gen.get_next_rand();
 		fprintf(stderr, "n: %d\n", n);
 		_current_generation[n] = cell_status::alive;
 	}
 
 	void generate_next_gen() const {
-
 		for (int x = 0; x < _grid_width; x++) {
-
 			for (int y = 0; y < _grid_height; y++) {
-
-				if (_current_generation[x + y * _grid_width] == cell_status::alive) {
-
-					int n_neighbour_alive = 0;
-					int i = -1;
-					if (x == 0) {
-						i = 0;
-					}
-					for (; i < 2; i++) {
-
-						int j = -1;
-						if (y == 0) {
-							j = 0;
-						}
-						for (; j < 2; j++) {
-
-							if (j == 0 && i == 0)
-								continue;
-
-							int index = (x + i) + (y + j) * _grid_width;
-							if (_current_generation[index] == cell_status::alive) {
-								n_neighbour_alive++;
-							}
-						}
-					}
-
-					if (n_neighbour_alive < 2) {
-						_next_generation[x + y * _grid_width] = cell_status::dead;
-
-					} else if (n_neighbour_alive >= 2 && n_neighbour_alive <= 3) {
-						_next_generation[x + y * _grid_width] = cell_status::alive;
-					} else if (n_neighbour_alive > 3) {
-						_next_generation[x + y * _grid_width] = cell_status::dead;
-					} else {
-						_next_generation[x + y * _grid_width] = _current_generation[x + y * _grid_width];
-					}
-				} else {
-
-					int n_neighbour_alive = 0;
-					int i = -1;
-					if (x == 0) {
-						i = 0;
-					}
-					for (; i < 2; i++) {
-
-						int j = -1;
-						if (y == 0) {
-							j = 0;
-						}
-						for (; j < 2; j++) {
-
-							int index = (x + i) + (y + j) * _grid_width;
-							if (_current_generation[index] == cell_status::alive) {
-								n_neighbour_alive++;
-							}
-						}
-					}
-
-					if (n_neighbour_alive == 3) {
-						_next_generation[x + y * _grid_width] = cell_status::alive;
-					} else {
-						_next_generation[x + y * _grid_width] = _current_generation[x + y * _grid_width];
-					}
-				}
+				generate_next_cell(x, y);
 			}
 		}
 	}
@@ -183,14 +183,6 @@ public:
 		for (int x = 0; x < _grid_width; x++) {
 			for (int y = 0; y < _grid_height; y++) {
 				_current_generation[x + y * _grid_width] = _next_generation[x + y * _grid_width];
-			}
-		}
-	}
-
-	void copy_current_to_next_gen() {
-		for (int x = 0; x < _grid_width; x++) {
-			for (int y = 0; y < _grid_height; y++) {
-				_next_generation[x + y * _grid_width] = _current_generation[x + y * _grid_width];
 			}
 		}
 	}
@@ -203,34 +195,30 @@ private:
 	tile_map &_map;
 
 	bool _play;
-	sf::Clock _clock;
-	sf::Clock _clock2;
-	sf::Text text;
-	sf::Font font;
+	sf::Clock _refresh_timer;
+	sf::Clock _random_cell_timer;
+	sf::Text _text;
+	sf::Font _font;
 
 	void draw_texts() {
-		if (is_play()) {
-			text.setString("running...");
-		} else {
-			text.setString("paused");
-		}
-		_window.draw(text);
+		std::string str = (is_play()) ? "running..." : "paused";
+		_text.setString(str);
+		_window.draw(_text);
 	}
 
 	void draw_tile_map() {
 		_map.generate_and_draw_current_gen();
 		if (is_play()) {
 
-			if (_clock2.getElapsedTime().asMilliseconds() > 10.0) {
+			if (_random_cell_timer.getElapsedTime().asMilliseconds() > 10.0) {
 				_map.enable_random_cell();
-				_clock2.restart();
+				_random_cell_timer.restart();
 			}
 
-			if (_clock.getElapsedTime().asMilliseconds() >= 66) {
-				//				//				_map.copy_current_to_next_gen();
+			if (_refresh_timer.getElapsedTime().asMilliseconds() >= 66) {
 				_map.generate_next_gen();
 				_map.copy_next_to_current_gen();
-				_clock.restart();
+				_refresh_timer.restart();
 			}
 		}
 	}
@@ -239,12 +227,12 @@ public:
 	game(sf::RenderWindow &window, tile_map &map)
 	    : _window(window)
 	    , _map(map)
-	    , _play(0) {
-		font.loadFromFile("../fonts/arial.ttf");
-		text.setFont(font);
-		text.setCharacterSize(15);
-		text.setFillColor(sf::Color::White);
-		text.setPosition(10, 0);
+	    , _play(false) {
+		_font.loadFromFile("../fonts/arial.ttf");
+		_text.setFont(_font);
+		_text.setCharacterSize(15);
+		_text.setFillColor(sf::Color::White);
+		_text.setPosition(10, 0);
 	}
 
 	bool is_play() const {
@@ -276,6 +264,8 @@ public:
 				}
 				break;
 			}
+			default:
+				break;
 			}
 		}
 	}
@@ -288,28 +278,22 @@ public:
 
 int main() {
 
-	const int cell_size = 10;
-	const int grid_width = 100;
-	const int grid_height = 100;
+	static constexpr int cell_size = 10;
+	static constexpr int grid_width = 100;
+	static constexpr int grid_height = 100;
+	static constexpr int win_width = cell_size * grid_width;
+	static constexpr int win_height = cell_size * grid_height;
 
-	sf::RenderWindow window(sf::VideoMode(cell_size * grid_width,
-	                                      cell_size * grid_height),
-	                        "game of life!");
+	sf::RenderWindow window(sf::VideoMode(win_width, win_height), "game of life!");
 	window.setVerticalSyncEnabled(true);// call it once, after creating the window
-//	window.setFramerateLimit(60); // call it once, after creating the window
 
 	tile_map map(window, cell_size, grid_width, grid_height);
 	game game(window, map);
 	while (window.isOpen()) {
-
 		game.handle_events();
-
 		window.clear();
-
 		game.draw();
-
 		window.display();
 	}
-
 	return 0;
 }
