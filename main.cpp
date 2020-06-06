@@ -1,5 +1,7 @@
 #include <SFML/Graphics.hpp>
 #include <cstring>
+#include <iostream>
+#include <random>
 
 class cell {
 private:
@@ -17,9 +19,10 @@ public:
 	    , _pos_y(y)
 	    , _size(size)
 	    , _shape(sf::Vector2f(_size, _size)) {
+
 		_shape.setPosition(_pos_x * _size, _pos_y * _size);
-		_shape.setOutlineThickness(1);
-		_shape.setOutlineColor(sf::Color::Cyan);
+		_shape.setOutlineThickness(0.3);
+		_shape.setOutlineColor(sf::Color::Green);
 	}
 
 public:
@@ -44,6 +47,9 @@ private:
 	int *_current_generation;
 	int *_next_generation;
 
+	std::random_device rd;
+	std::mt19937 gen;
+	std::uniform_int_distribution<> distrib;
 	enum cell_status {
 		dead = 0,
 		alive
@@ -51,6 +57,35 @@ private:
 
 	bool is_alive(int x, int y) const {
 		return _current_generation[x + y * _grid_width] == alive;
+	}
+
+public:
+	tile_map(sf::RenderWindow &window, int cell_size, int grid_width, int grid_height)
+	    : _window(window)
+	    , _cell_size(cell_size)
+	    , _grid_width(grid_width)
+	    , _grid_height(grid_height)
+	    , gen(rd())
+	    , distrib(0, _n_cells) {
+
+		_current_generation = new int[_n_cells];
+		memset(_current_generation, 0, _n_cells * sizeof(*_current_generation));
+
+		_next_generation = new int[_n_cells];
+		memset(_next_generation, 0, _n_cells * sizeof(*_next_generation));
+	}
+
+	~tile_map() {
+		delete[] _current_generation;
+		delete[] _next_generation;
+	}
+
+	void on_click(int mx, int my) {
+		int x = double(mx) / _cell_size;
+		int y = double(my) / _cell_size;
+		if (x >= 0 && x < _grid_width && y >= 0 && y < _grid_height) {
+			_current_generation[x + y * _grid_width] = !_current_generation[x + y * _grid_width];
+		}
 	}
 
 	void generate_and_draw_current_gen() const {
@@ -65,33 +100,10 @@ private:
 		}
 	}
 
-public:
-	tile_map(sf::RenderWindow &window, int cell_size, int grid_width, int grid_height)
-	    : _window(window)
-	    , _cell_size(cell_size)
-	    , _grid_width(grid_width)
-	    , _grid_height(grid_height) {
-
-		_current_generation = new int[_n_cells];
-		memset(_current_generation, 0, _n_cells * sizeof(int));
-
-		_next_generation = new int[_n_cells];
-		memset(_next_generation, 0, _n_cells * sizeof(int));
-	}
-
-	~tile_map() {
-		delete[] _current_generation;
-		delete[] _next_generation;
-	}
-
-	void on_click(int mx, int my) {
-		int x = double(mx) / _cell_size;
-		int y = double(my) / _cell_size;
-		fprintf(stderr, "%d %d\n", x, y);
-		if (x >= 0 && x < _grid_width && y >= 0 && y < _grid_height) {
-			_current_generation[x + y * _grid_width] = !_current_generation[x + y * _grid_width];
-			fprintf(stderr, "  %d\n", _current_generation[x + y * _grid_width]);
-		}
+	void enable_random_cell() {
+		auto n = distrib(gen);
+		fprintf(stderr, "n: %d\n", n);
+		_current_generation[n] = cell_status::alive;
 	}
 
 	void generate_next_gen() const {
@@ -100,31 +112,68 @@ public:
 
 			for (int y = 0; y < _grid_height; y++) {
 
-				int n_neighbour_alive = 0;
-				int i = -1;
-				if (x == 0) {
-					i = 0;
-				}
-				for (; i < 2; i++) {
+				if (_current_generation[x + y * _grid_width] == cell_status::alive) {
 
-					int j = -1;
-					if (y == 0) {
-						j = 0;
+					int n_neighbour_alive = 0;
+					int i = -1;
+					if (x == 0) {
+						i = 0;
 					}
-					for (; j < 2; j++) {
+					for (; i < 2; i++) {
 
-						if (_current_generation[i * j] == cell_status::alive) {
-							n_neighbour_alive++;
+						int j = -1;
+						if (y == 0) {
+							j = 0;
+						}
+						for (; j < 2; j++) {
+
+							if (j == 0 && i == 0)
+								continue;
+
+							int index = (x + i) + (y + j) * _grid_width;
+							if (_current_generation[index] == cell_status::alive) {
+								n_neighbour_alive++;
+							}
 						}
 					}
-				}
 
-				if (n_neighbour_alive < 2) {
-					_next_generation[x * y] = cell_status::dead;
-				} else if (n_neighbour_alive >= 2 && n_neighbour_alive <= 3) {
-					_next_generation[x * y] = cell_status::alive;
+					if (n_neighbour_alive < 2) {
+						_next_generation[x + y * _grid_width] = cell_status::dead;
+
+					} else if (n_neighbour_alive >= 2 && n_neighbour_alive <= 3) {
+						_next_generation[x + y * _grid_width] = cell_status::alive;
+					} else if (n_neighbour_alive > 3) {
+						_next_generation[x + y * _grid_width] = cell_status::dead;
+					} else {
+						_next_generation[x + y * _grid_width] = _current_generation[x + y * _grid_width];
+					}
 				} else {
-					_next_generation[x * y] = cell_status::dead;
+
+					int n_neighbour_alive = 0;
+					int i = -1;
+					if (x == 0) {
+						i = 0;
+					}
+					for (; i < 2; i++) {
+
+						int j = -1;
+						if (y == 0) {
+							j = 0;
+						}
+						for (; j < 2; j++) {
+
+							int index = (x + i) + (y + j) * _grid_width;
+							if (_current_generation[index] == cell_status::alive) {
+								n_neighbour_alive++;
+							}
+						}
+					}
+
+					if (n_neighbour_alive == 3) {
+						_next_generation[x + y * _grid_width] = cell_status::alive;
+					} else {
+						_next_generation[x + y * _grid_width] = _current_generation[x + y * _grid_width];
+					}
 				}
 			}
 		}
@@ -133,13 +182,17 @@ public:
 	void copy_next_to_current_gen() {
 		for (int x = 0; x < _grid_width; x++) {
 			for (int y = 0; y < _grid_height; y++) {
-				_current_generation[x * y] = _next_generation[x * y];
+				_current_generation[x + y * _grid_width] = _next_generation[x + y * _grid_width];
 			}
 		}
 	}
 
-	void draw() {
-		generate_and_draw_current_gen();
+	void copy_current_to_next_gen() {
+		for (int x = 0; x < _grid_width; x++) {
+			for (int y = 0; y < _grid_height; y++) {
+				_next_generation[x + y * _grid_width] = _current_generation[x + y * _grid_width];
+			}
+		}
 	}
 };
 
@@ -151,6 +204,7 @@ private:
 
 	bool _play;
 	sf::Clock _clock;
+	sf::Clock _clock2;
 	sf::Text text;
 	sf::Font font;
 
@@ -164,9 +218,16 @@ private:
 	}
 
 	void draw_tile_map() {
-		_map.draw();
+		_map.generate_and_draw_current_gen();
 		if (is_play()) {
-			if (_clock.getElapsedTime().asMilliseconds() >= 500) {
+
+			if (_clock2.getElapsedTime().asMilliseconds() > 10.0) {
+				_map.enable_random_cell();
+				_clock2.restart();
+			}
+
+			if (_clock.getElapsedTime().asMilliseconds() >= 66) {
+				//				//				_map.copy_current_to_next_gen();
 				_map.generate_next_gen();
 				_map.copy_next_to_current_gen();
 				_clock.restart();
@@ -226,14 +287,16 @@ public:
 };
 
 int main() {
-	const int cell_size = 30;
-	const int grid_width = 30;
-	const int grid_height = 30;
+
+	const int cell_size = 10;
+	const int grid_width = 100;
+	const int grid_height = 100;
 
 	sf::RenderWindow window(sf::VideoMode(cell_size * grid_width,
 	                                      cell_size * grid_height),
 	                        "game of life!");
-	//	window.setVerticalSyncEnabled(true); // call it once, after creating the window
+	window.setVerticalSyncEnabled(true);// call it once, after creating the window
+//	window.setFramerateLimit(60); // call it once, after creating the window
 
 	tile_map map(window, cell_size, grid_width, grid_height);
 	game game(window, map);
