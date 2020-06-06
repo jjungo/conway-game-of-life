@@ -76,9 +76,6 @@ private:
 
 	void generate_next_cell(int x, int y, int i, int j, int &neib) const {
 
-		if (j == 0 && i == 0)
-			return;
-
 		if (_current_generation[(x + i) + (y + j) * _grid_width] == alive) {
 			neib++;
 		}
@@ -149,6 +146,16 @@ public:
 				int neib = 0;
 				for (int i = -1; i < 2; i++) {
 					for (int j = -1; j < 2; j++) {
+
+						if (j == 0 && i == 0)
+							continue;
+
+						if ((x + i) == _grid_width - 1)
+							continue;
+
+						if ((y + j) == _grid_height - 1)
+							continue;
+
 						generate_next_cell(x, y, i, j, neib);
 					}
 				}
