@@ -21,8 +21,8 @@ public:
 	    , _shape(sf::Vector2f(_size, _size)) {
 
 		_shape.setPosition(_pos_x * _size, _pos_y * _size);
-		_shape.setOutlineThickness(0.3);
-		_shape.setOutlineColor(sf::Color::Green);
+//		_shape.setOutlineThickness(0.8);
+//		_shape.setOutlineColor(sf::Color::Green);
 	}
 
 public:
@@ -74,54 +74,25 @@ private:
 		return _current_generation[x + y * _grid_width] == alive;
 	}
 
-	void get_next_gen_when_cell_is_alive(int x, int y, int n_neighbour_alive) const {
-		if (n_neighbour_alive < 2 || n_neighbour_alive > 3) {
-			_next_generation[x + y * _grid_width] = dead;
+	void generate_next_cell(int x, int y, int i, int j, int &neib) const {
 
-		} else if (n_neighbour_alive >= 2 && n_neighbour_alive <= 3) {
-			_next_generation[x + y * _grid_width] = alive;
+		if (j == 0 && i == 0)
+			return;
+
+		if (_current_generation[(x + i) + (y + j) * _grid_width] == alive) {
+			neib++;
+		}
+
+		int index = x + y * _grid_width;
+
+		if (_current_generation[index] == alive && (neib < 2 || neib > 3)) {
+			_next_generation[index] = dead;
+		} else if (_current_generation[index] == alive && (neib >= 2 && neib <= 3)) {
+			_next_generation[index] = alive;
+		} else if (_current_generation[index] == dead && (neib == 3)) {
+			_next_generation[index] = alive;
 		} else {
-			_next_generation[x + y * _grid_width] = _current_generation[x + y * _grid_width];
-		}
-	}
-
-	void get_next_gen_when_cell_is_dead(int x, int y, int n_neighbour_alive) const {
-		if (n_neighbour_alive == 3) {
-			_next_generation[x + y * _grid_width] = alive;
-		} else {
-			_next_generation[x + y * _grid_width] = _current_generation[x + y * _grid_width];
-		}
-	}
-
-	void generate_next_cell(int x, int y) const {
-		int n_neighbours = 0;
-		int i = -1;
-		if (x == 0) {
-			i = 0;
-		}
-		for (; i < 2; i++) {
-
-			int j = -1;
-			if (y == 0) {
-				j = 0;
-			}
-			for (; j < 2; j++) {
-
-				if (j == 0 && i == 0)
-					continue;
-
-				int index = (x + i) + (y + j) * _grid_width;
-				if (_current_generation[index] == alive) {
-					n_neighbours++;
-				}
-
-				if (_current_generation[x + y * _grid_width] == alive) {
-					get_next_gen_when_cell_is_alive(x, y, n_neighbours);
-
-				} else {
-					get_next_gen_when_cell_is_dead(x, y, n_neighbours);
-				}
-			}
+			_next_generation[index] = _current_generation[index];
 		}
 	}
 
@@ -172,9 +143,15 @@ public:
 	}
 
 	void generate_next_gen() const {
+
 		for (int x = 0; x < _grid_width; x++) {
 			for (int y = 0; y < _grid_height; y++) {
-				generate_next_cell(x, y);
+				int neib = 0;
+				for (int i = -1; i < 2; i++) {
+					for (int j = -1; j < 2; j++) {
+						generate_next_cell(x, y, i, j, neib);
+					}
+				}
 			}
 		}
 	}
@@ -211,8 +188,8 @@ private:
 		if (is_play()) {
 
 			if (_random_cell_timer.getElapsedTime().asMilliseconds() > 10.0) {
-				_map.enable_random_cell();
-				_random_cell_timer.restart();
+				//				_map.enable_random_cell();
+				//				_random_cell_timer.restart();
 			}
 
 			if (_refresh_timer.getElapsedTime().asMilliseconds() >= 66) {
