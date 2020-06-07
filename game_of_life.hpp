@@ -108,6 +108,8 @@ public:
 	    , _grid_height(grid_height)
 	    , _rand_gen(0, _n_cells) {
 
+		_current_generation = new int[_n_cells];
+		_next_generation = new int[_n_cells];
 		clear();
 	}
 
@@ -193,11 +195,9 @@ public:
 	}
 
 	void clear() {
-		_current_generation = new int[_n_cells];
 		memset(_current_generation, 0, _n_cells * sizeof(*_current_generation));
-
-		_next_generation = new int[_n_cells];
-		memset(_next_generation, 0, _n_cells * sizeof(*_next_generation));	}
+		memset(_next_generation, 0, _n_cells * sizeof(*_next_generation));
+	}
 };
 
 class game {
