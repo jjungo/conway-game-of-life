@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(game-of-life)
+project(game-of-life-app)
 
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
@@ -20,14 +20,31 @@ if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif ()
 
 
-add_executable(game-of-life main.cpp)
+add_library(game-of-life INTERFACE)
 
-target_link_libraries(
+target_include_directories(
 		game-of-life
-		PRIVATE
+		INTERFACE
+		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+		$<INSTALL_INTERFACE:include>
+)
+
+target_link_libraries(game-of-life
+		INTERFACE
 		sfml-graphics
 		sfml-window
 		sfml-system
+		)
+
+target_compile_options(game-of-life INTERFACE -Wall -Wextra)
+target_compile_features(game-of-life INTERFACE cxx_std_17)
+
+add_executable(game-of-life-app
+		main.cpp)
+
+target_link_libraries(game-of-life-app
+		PRIVATE
+		game-of-life
 )
-target_compile_options(game-of-life PRIVATE -Wall -Wextra)
-target_compile_features(game-of-life PRIVATE cxx_std_17)
+target_compile_options(game-of-life-app PRIVATE -Wall -Wextra)
+target_compile_features(game-of-life-app PRIVATE cxx_std_17)
