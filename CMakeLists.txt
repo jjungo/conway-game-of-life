@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 3.16)
 project(game-of-life)
 
 
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+include(utils)
+
+find_catch2()
+enable_testing()
+
+
 set(default_build_type "Release")
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 	message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
@@ -23,4 +30,4 @@ target_link_libraries(
 		sfml-system
 )
 target_compile_options(game-of-life PRIVATE -Wall -Wextra)
-target_compile_features(game-of-life PRIVATE cxx_std_14)
+target_compile_features(game-of-life PRIVATE cxx_std_17)
