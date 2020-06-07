@@ -138,9 +138,8 @@ public:
 		}
 	}
 
-	void enable_random_cell() {
+	void generate_random_cell() {
 		auto n = _rand_gen.get_next_rand();
-		fprintf(stderr, "n: %d\n", n);
 		_current_generation[n] = cell_status::alive;
 	}
 
@@ -148,7 +147,7 @@ public:
 
 		for (int x = 0; x < _grid_width; x++) {
 			for (int y = 0; y < _grid_height; y++) {
-				int neib = 0;
+				int neighbours = 0;
 				for (int i = -1; i < 2; i++) {
 					for (int j = -1; j < 2; j++) {
 
@@ -161,7 +160,7 @@ public:
 						if ((y + j) == _grid_height - 1)
 							continue;
 
-						generate_next_cell(x, y, i, j, neib);
+						generate_next_cell(x, y, i, j, neighbours);
 					}
 				}
 			}
@@ -176,7 +175,7 @@ public:
 		}
 	}
 
-	void place_asset(const std::vector<std::vector<int>> &asset, int x, int y) {
+	void drop_asset(const std::vector<std::vector<int>> &asset, int x, int y) {
 		if (asset.empty()) {
 			return;
 		}
@@ -229,7 +228,7 @@ private:
 		if (is_play()) {
 
 			if (_random_cell_timer.getElapsedTime().asMilliseconds() > 10.0) {
-				//				_map.enable_random_cell();
+				//				_map.generate_random_cell();
 				//				_random_cell_timer.restart();
 			}
 
@@ -241,17 +240,22 @@ private:
 		}
 	}
 
+	void display_text() {
+		_font.loadFromFile("../fonts/arial.ttf");
+		_text.setFont(_font);
+		_text.setCharacterSize(15);
+		_text.setFillColor(sf::Color::White);
+		_text.setPosition(10, 0);
+	};
+
 public:
 	game(sf::RenderWindow &window, tile_map &map, int refresh_period_ms = 16)
 	    : _window(window)
 	    , _map(map)
 	    , _play(false)
 	    , _refresh_period_ms(refresh_period_ms) {
-		_font.loadFromFile("../fonts/arial.ttf");
-		_text.setFont(_font);
-		_text.setCharacterSize(15);
-		_text.setFillColor(sf::Color::White);
-		_text.setPosition(10, 0);
+
+		display_text();
 
 		fprintf(stdout, "Keymaps: \n");
 		fprintf(stdout, " [+] c: clear \n");
@@ -318,9 +322,9 @@ public:
 		return asset_list;
 	}
 
-	void place_asset(const asset_name &name, int x, int y) {
+	void drop_asset(const asset_name &name, int x, int y) {
 		auto asset = _assets[name];
-		_map.place_asset(asset, x, y);
+		_map.drop_asset(asset, x, y);
 	}
 };
 

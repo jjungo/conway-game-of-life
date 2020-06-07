@@ -10,7 +10,7 @@ static void push_assets(jjo::game_of_life::game &game) {
 	        {0, 1, 0}});
 
 	game.push_asset(blinker);
-	game.place_asset(blinker.first, 10, 10);
+	game.drop_asset(blinker.first, 10, 10);
 
 	auto toad = std::make_pair(
 	    "toad",
@@ -24,7 +24,7 @@ static void push_assets(jjo::game_of_life::game &game) {
 	    });
 
 	game.push_asset(toad);
-	game.place_asset(toad.first, 20, 20);
+	game.drop_asset(toad.first, 20, 20);
 
 	auto glider = std::make_pair(
 	    "Glider",
@@ -38,7 +38,7 @@ static void push_assets(jjo::game_of_life::game &game) {
 	    });
 
 	game.push_asset(glider);
-	game.place_asset(glider.first, 30, 10);
+	game.drop_asset(glider.first, 30, 10);
 
 	auto hwss = std::make_pair(
 	    "HWSS",// Heavy-weight	spaceship
@@ -55,7 +55,7 @@ static void push_assets(jjo::game_of_life::game &game) {
 	    });
 
 	game.push_asset(hwss);
-	game.place_asset(hwss.first, 50, 50);
+	game.drop_asset(hwss.first, 50, 50);
 
 	auto loafer = std::make_pair(
 	    "loafer",
@@ -74,7 +74,7 @@ static void push_assets(jjo::game_of_life::game &game) {
 	    });
 
 	game.push_asset(loafer);
-	game.place_asset(loafer.first, 70, 60);
+	game.drop_asset(loafer.first, 70, 60);
 }
 int main() {
 
