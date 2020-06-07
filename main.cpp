@@ -15,16 +15,66 @@ static void push_assets(jjo::game_of_life::game &game) {
 	auto toad = std::make_pair(
 	    "toad",
 	    std::vector<std::vector<int>>{
-			{0, 0, 0, 0, 0, 0},
-			{0, 0, 0, 0, 0, 0},
-			{0, 0, 1, 1, 1, 0},
-			{0, 1, 1, 1, 0, 0},
-			{0, 0, 0, 0, 0, 0},
-			{0, 0, 0, 0, 0, 0},
+	        {0, 0, 0, 0, 0, 0},
+	        {0, 0, 0, 0, 0, 0},
+	        {0, 0, 1, 1, 1, 0},
+	        {0, 1, 1, 1, 0, 0},
+	        {0, 0, 0, 0, 0, 0},
+	        {0, 0, 0, 0, 0, 0},
 	    });
 
 	game.push_asset(toad);
 	game.place_asset(toad.first, 20, 20);
+
+	auto glider = std::make_pair(
+	    "Glider",
+	    std::vector<std::vector<int>>{
+	        {0, 0, 0, 0, 0, 0},
+	        {0, 0, 0, 1, 0, 0},
+	        {0, 1, 0, 1, 0, 0},
+	        {0, 0, 1, 1, 0, 0},
+	        {0, 0, 0, 0, 0, 0},
+	        {0, 0, 0, 0, 0, 0},
+	    });
+
+	game.push_asset(glider);
+	game.place_asset(glider.first, 30, 10);
+
+	auto hwss = std::make_pair(
+	    "HWSS",// Heavy-weight	spaceship
+	    std::vector<std::vector<int>>{
+	        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+	        {0, 0, 0, 0, 1, 1, 0, 0, 0},
+	        {0, 0, 1, 0, 0, 0, 0, 1, 0},
+	        {0, 1, 0, 0, 0, 0, 0, 0, 0},
+	        {0, 1, 0, 0, 0, 0, 0, 1, 0},
+	        {0, 1, 1, 1, 1, 1, 1, 0, 0},
+	        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+	        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+	        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+	    });
+
+	game.push_asset(hwss);
+	game.place_asset(hwss.first, 50, 50);
+
+	auto loafer = std::make_pair(
+	    "loafer",
+	    std::vector<std::vector<int>>{
+	        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	        {0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0},
+	        {0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0},
+	        {0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0},
+	        {0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0},
+	        {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0},
+	        {0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0},
+	        {0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0},
+	        {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
+	        {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0},
+	        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	    });
+
+	game.push_asset(loafer);
+	game.place_asset(loafer.first, 70, 60);
 }
 int main() {
 
@@ -38,7 +88,7 @@ int main() {
 	window.setVerticalSyncEnabled(true);// call it once, after creating the window
 
 	jjo::game_of_life::tile_map map(window, cell_size, grid_width, grid_height);
-	jjo::game_of_life::game game(window, map, 200);
+	jjo::game_of_life::game game(window, map, 32);
 
 	push_assets(game);
 
