@@ -4,6 +4,10 @@
 
 #ifndef GAME_OF_LIFE__GAME_OF_LIFE_HPP
 #define GAME_OF_LIFE__GAME_OF_LIFE_HPP
+#include <SFML/Graphics.hpp>
+#include <cstring>
+#include <iostream>
+#include <random>
 
 namespace jjo::game_of_life {
 
@@ -261,5 +265,5 @@ public:
 	}
 };
 
-}// namespace jjo
+}// namespace jjo::game_of_life
 #endif//GAME_OF_LIFE__GAME_OF_LIFE_HPP

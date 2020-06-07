@@ -1,9 +1,5 @@
-#include <SFML/Graphics.hpp>
-#include <cstring>
-#include <iostream>
-#include <random>
-#include "game_of_life.hpp"
 
+#include "game_of_life.hpp"
 
 int main() {
 

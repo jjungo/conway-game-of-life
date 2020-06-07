@@ -4,6 +4,6 @@
 
 
 #include <catch2/catch.hpp>
-#include "game_of_life.hpp"
+#include <game_of_life.hpp>
 
 TEST_CASE("empty test") {}
