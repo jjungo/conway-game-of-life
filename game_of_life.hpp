@@ -108,11 +108,7 @@ public:
 	    , _grid_height(grid_height)
 	    , _rand_gen(0, _n_cells) {
 
-		_current_generation = new int[_n_cells];
-		memset(_current_generation, 0, _n_cells * sizeof(*_current_generation));
-
-		_next_generation = new int[_n_cells];
-		memset(_next_generation, 0, _n_cells * sizeof(*_next_generation));
+		clear();
 	}
 
 	~tile_map() {
@@ -195,6 +191,13 @@ public:
 			}
 		}
 	}
+
+	void clear() {
+		_current_generation = new int[_n_cells];
+		memset(_current_generation, 0, _n_cells * sizeof(*_current_generation));
+
+		_next_generation = new int[_n_cells];
+		memset(_next_generation, 0, _n_cells * sizeof(*_next_generation));	}
 };
 
 class game {
@@ -249,6 +252,10 @@ public:
 		_text.setCharacterSize(15);
 		_text.setFillColor(sf::Color::White);
 		_text.setPosition(10, 0);
+
+		fprintf(stdout, "Keymaps: \n");
+		fprintf(stdout, " [+] c: clear \n");
+		fprintf(stdout, " [+] p: pause / resume\n\n");
 	}
 
 	bool is_play() const {
@@ -277,6 +284,8 @@ public:
 			case sf::Event::KeyPressed: {
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) {
 					_play = !_play;
+				} else if (sf::Keyboard::isKeyPressed(sf::Keyboard::C)) {
+					_map.clear();
 				}
 				break;
 			}
