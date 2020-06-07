@@ -84,11 +84,7 @@ private:
 		return _current_generation[x + y * _grid_width] == alive;
 	}
 
-	void generate_next_cell(int x, int y, int i, int j, int &neib) const {
-
-		if (_current_generation[(x + i) + (y + j) * _grid_width] == alive) {
-			neib++;
-		}
+	void generate_next_cell(int x, int y, int &neib) const {
 
 		int index = x + y * _grid_width;
 
@@ -122,6 +118,7 @@ public:
 		int x = mx / _cell_size;
 		int y = my / _cell_size;
 		if (x >= 0 && x < _grid_width && y >= 0 && y < _grid_height) {
+			fprintf(stderr, "%d %d [%d]\n", x, y, x + y * _grid_width);
 			_current_generation[x + y * _grid_width] = !_current_generation[x + y * _grid_width];
 		}
 	}
@@ -145,7 +142,7 @@ public:
 
 	void generate_next_gen() const {
 
-		for (int x = 0; x < _grid_width; x++) {
+		for (int x = 0; x < _grid_width - 1; x++) {
 			for (int y = 0; y < _grid_height; y++) {
 				int neighbours = 0;
 				for (int i = -1; i < 2; i++) {
@@ -154,15 +151,14 @@ public:
 						if (j == 0 && i == 0)
 							continue;
 
-						if ((x + i) == _grid_width - 1)
-							continue;
-
-						if ((y + j) == _grid_height - 1)
-							continue;
-
-						generate_next_cell(x, y, i, j, neighbours);
+						int index = (((x + i) % _grid_height) + ((y + j) % _grid_width) * _grid_width);
+						if (_current_generation[index] == alive) {
+							neighbours++;
+						}
 					}
 				}
+
+				generate_next_cell(x, y, neighbours);
 			}
 		}
 	}
