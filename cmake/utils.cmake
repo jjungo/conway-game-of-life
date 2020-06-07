@@ -5,6 +5,7 @@ function(find_catch2)
 	if (NOT EXISTS ${catch_cmake_lists})
 		find_package(Git)
 		if (NOT Git_FOUND)
+			MESSAGE(WARNING "git not found! ")
 			return()
 		endif()
 		execute_process(
