@@ -30,6 +30,7 @@ public:
 	    , _shape(sf::Vector2f(_size, _size)) {
 
 		_shape.setPosition(_pos_x * _size, _pos_y * _size);
+		// TODO add this configurable
 		//		_shape.setOutlineThickness(0.8);
 		//		_shape.setOutlineColor(sf::Color::Green);
 	}
@@ -182,12 +183,12 @@ public:
 			return;
 		}
 
+		// TODO check window boundaries
 		if (x < 0 || y < 0) {
 			return;
 		}
 
-		// TODO check window boundaries
-
+		// TODO fix this indexing mess, it's onl work when asset dimension is N x N
 		for (unsigned int i = 0; i < asset.size(); i++) {
 			for (unsigned int j = 0; j < asset.at(i).size(); j++) {
 				_current_generation[(x + i) + (y + j) * _grid_width] = asset[j][i];
