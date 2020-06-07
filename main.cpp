@@ -38,7 +38,7 @@ int main() {
 	window.setVerticalSyncEnabled(true);// call it once, after creating the window
 
 	jjo::game_of_life::tile_map map(window, cell_size, grid_width, grid_height);
-	jjo::game_of_life::game game(window, map);
+	jjo::game_of_life::game game(window, map, 200);
 
 	push_assets(game);
 

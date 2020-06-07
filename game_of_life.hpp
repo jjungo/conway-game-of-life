@@ -208,6 +208,8 @@ private:
 	sf::Text _text;
 	sf::Font _font;
 
+	int _refresh_period_ms;
+
 	using asset_name = std::string;
 	using asset = std::vector<std::vector<int>>;
 	std::unordered_map<asset_name, asset> _assets;
@@ -227,7 +229,7 @@ private:
 				//				_random_cell_timer.restart();
 			}
 
-			if (_refresh_timer.getElapsedTime().asMilliseconds() >= 66) {
+			if (_refresh_timer.getElapsedTime().asMilliseconds() >= _refresh_period_ms) {
 				_map.generate_next_gen();
 				_map.copy_next_to_current_gen();
 				_refresh_timer.restart();
@@ -236,10 +238,11 @@ private:
 	}
 
 public:
-	game(sf::RenderWindow &window, tile_map &map)
+	game(sf::RenderWindow &window, tile_map &map, int refresh_period_ms = 16)
 	    : _window(window)
 	    , _map(map)
-	    , _play(false) {
+	    , _play(false)
+	    , _refresh_period_ms(refresh_period_ms) {
 		_font.loadFromFile("../fonts/arial.ttf");
 		_text.setFont(_font);
 		_text.setCharacterSize(15);
