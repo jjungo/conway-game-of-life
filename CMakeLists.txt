@@ -48,3 +48,5 @@ target_link_libraries(game-of-life-app
 )
 target_compile_options(game-of-life-app PRIVATE -Wall -Wextra)
 target_compile_features(game-of-life-app PRIVATE cxx_std_17)
+
+#add_subdirectory(tests)
