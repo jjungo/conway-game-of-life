@@ -7,16 +7,17 @@ function(find_catch2)
 		if (NOT Git_FOUND)
 			MESSAGE(WARNING "git not found! ")
 			return()
-		endif()
+		endif ()
 		execute_process(
 				COMMAND ${GIT_EXECUTABLE} submodule update --init -- Catch2
 				WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/external
 				RESULT_VARIABLE git_submodule_error
-				ERROR_QUIET)
+				#ERROR_QUIET
+		)
 		if (git_submodule_error OR NOT EXISTS ${catch_cmake_lists})
 			return()
-		endif()
-	endif()
+		endif ()
+	endif ()
 	add_subdirectory(external/Catch2)
 	list(APPEND CMAKE_MODULE_PATH
 			${PROJECT_SOURCE_DIR}/external/Catch2/contrib)
