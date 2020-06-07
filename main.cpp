@@ -78,6 +78,7 @@ static void push_assets(jjo::game_of_life::game &game) {
 }
 int main() {
 
+	static constexpr int refresh_period_ms = 32;
 	static constexpr int cell_size = 10;
 	static constexpr int grid_width = 100;
 	static constexpr int grid_height = 100;
@@ -88,7 +89,7 @@ int main() {
 	window.setVerticalSyncEnabled(true);// call it once, after creating the window
 
 	jjo::game_of_life::tile_map map(window, cell_size, grid_width, grid_height);
-	jjo::game_of_life::game game(window, map, 32);
+	jjo::game_of_life::game game(window, map, refresh_period_ms);
 
 	push_assets(game);
 
