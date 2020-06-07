@@ -176,6 +176,24 @@ public:
 			}
 		}
 	}
+
+	void place_asset(const std::vector<std::vector<int>> &asset, int x, int y) {
+		if (asset.empty()) {
+			return;
+		}
+
+		if (x < 0 || y < 0) {
+			return;
+		}
+
+		// TODO check window boundaries
+
+		for (unsigned int i = 0; i < asset.size(); i++) {
+			for (unsigned int j = 0; j < asset.at(i).size(); j++) {
+				_current_generation[(x + i) + (y + j) * _grid_width] = asset[j][i];
+			}
+		}
+	}
 };
 
 class game {
@@ -285,6 +303,11 @@ public:
 		}
 
 		return asset_list;
+	}
+
+	void place_asset(const asset_name &name, int x, int y) {
+		auto asset = _assets[name];
+		_map.place_asset(asset, x, y);
 	}
 };
 

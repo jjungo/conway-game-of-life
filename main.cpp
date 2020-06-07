@@ -1,6 +1,31 @@
 
 #include "game_of_life.hpp"
 
+static void push_assets(jjo::game_of_life::game &game) {
+	auto blinker = std::make_pair(
+	    "Blinker",
+	    std::vector<std::vector<int>>{
+	        {0, 1, 0},
+	        {0, 1, 0},
+	        {0, 1, 0}});
+
+	game.push_asset(blinker);
+	game.place_asset(blinker.first, 10, 10);
+
+	auto toad = std::make_pair(
+	    "toad",
+	    std::vector<std::vector<int>>{
+			{0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0},
+			{0, 0, 1, 1, 1, 0},
+			{0, 1, 1, 1, 0, 0},
+			{0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0},
+	    });
+
+	game.push_asset(toad);
+	game.place_asset(toad.first, 20, 20);
+}
 int main() {
 
 	static constexpr int cell_size = 10;
@@ -14,6 +39,9 @@ int main() {
 
 	jjo::game_of_life::tile_map map(window, cell_size, grid_width, grid_height);
 	jjo::game_of_life::game game(window, map);
+
+	push_assets(game);
+
 	while (window.isOpen()) {
 		game.handle_events();
 		window.clear();
