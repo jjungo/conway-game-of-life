@@ -8,6 +8,7 @@
 #include <cstring>
 #include <iostream>
 #include <random>
+#include <unordered_map>
 
 namespace jjo::game_of_life {
 
@@ -189,6 +190,10 @@ private:
 	sf::Text _text;
 	sf::Font _font;
 
+	using asset_name = std::string;
+	using asset = std::vector<std::vector<int>>;
+	std::unordered_map<asset_name, asset> _assets;
+
 	void draw_texts() {
 		std::string str = (is_play()) ? "running..." : "paused";
 		_text.setString(str);
@@ -262,6 +267,24 @@ public:
 	void draw() {
 		draw_tile_map();
 		draw_texts();
+	}
+
+	void push_asset(const std::pair<asset_name, asset> &asset) {
+		_assets.insert(asset);
+	}
+
+	void remove_asset(const std::string &asset_name) {
+		_assets.erase(asset_name);
+	}
+
+	std::vector<std::string> get_asset_names() const {
+		std::vector<std::string> asset_list;
+		for (const auto &[name, _] : _assets) {
+			(void) _;// unused
+			asset_list.push_back(name);
+		}
+
+		return asset_list;
 	}
 };
 
