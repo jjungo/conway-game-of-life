@@ -9,6 +9,7 @@
 #include <cstring>
 #include <iostream>
 #include <random>
+#include <thread>
 #include <unordered_map>
 
 namespace jjo::game_of_life {
@@ -105,7 +106,7 @@ private:
 	const int _n_cells = _grid_height * _grid_width;
 
 public:
-	const int cell_count() const {
+	int cell_count() const {
 		return _n_cells;
 	}
 
@@ -124,7 +125,7 @@ private:
 		return _current_generation[x + y * _grid_width] == alive;
 	}
 
-	void generate_next_cell(int x, int y, int &neib) const {
+	inline void generate_next_cell(int x, int y, int &neib) const {
 
 		int index = x + y * _grid_width;
 
@@ -147,6 +148,12 @@ public:
 		_current_generation = new int[_n_cells];
 		_next_generation = new int[_n_cells];
 		clear();
+
+		simple_rand_generator rnd(0, 1);
+		for (int i = 0; i < _n_cells; i++) {
+			_current_generation[i] = rnd.get_next_rand();
+			_next_generation[i] = rnd.get_next_rand();
+		}
 	}
 
 	~tile_map() {
@@ -182,33 +189,28 @@ public:
 
 	void generate_next_gen() const {
 
-		for (int x = 0; x < _grid_width - 1; x++) {
+		for (int x = 0; x < _grid_width; x++) {
+			int x0 = ((x + _grid_width - 1) % _grid_width);
+			int x1 = ((x + _grid_width) % _grid_width);
+			int x2 = ((x + _grid_width + 1) % _grid_width);
+
 			for (int y = 0; y < _grid_height; y++) {
+				int y0 = ((y + _grid_width - 1) % _grid_width) * _grid_width;
+				int y1 = ((y + _grid_width) % _grid_width) * _grid_width;
+				int y2 = ((y + _grid_width + 1) % _grid_width) * _grid_width;
+
 				int neighbours = 0;
-				for (int i = -1; i < 2; i++) {
-					for (int j = -1; j < 2; j++) {
-
-						if (j == 0 && i == 0)
-							continue;
-
-						int index = (((x + i) % _grid_height) + ((y + j) % _grid_width) * _grid_width);
-						if (_current_generation[index] == alive) {
-							neighbours++;
-						}
-					}
-				}
+				neighbours = _current_generation[x0 + y0] + _current_generation[x1 + y0] + _current_generation[x2 + y0]
+				    + _current_generation[x0 + y1] + _current_generation[x2 + y1]
+				    + _current_generation[x0 + y2] + _current_generation[x1 + y2] + _current_generation[x2 + y2];
 
 				generate_next_cell(x, y, neighbours);
 			}
 		}
 	}
 
-	void copy_next_to_current_gen() {
-		for (int x = 0; x < _grid_width; x++) {
-			for (int y = 0; y < _grid_height; y++) {
-				_current_generation[x + y * _grid_width] = _next_generation[x + y * _grid_width];
-			}
-		}
+	inline void copy_next_to_current_gen() {
+		std::swap(_current_generation, _next_generation);
 	}
 
 	void drop_asset(const std::vector<std::vector<int>> &asset, int x, int y) {
@@ -266,10 +268,10 @@ private:
 		_map.generate_and_draw_current_gen();
 		if (is_play()) {
 
-			if (_random_cell_timer.getElapsedTime().asMilliseconds() > 10.0) {
-				//				_map.generate_random_cell();
-				//				_random_cell_timer.restart();
-			}
+			//			if (_random_cell_timer.getElapsedTime().asMilliseconds() > 10.0) {
+			//				_map.generate_random_cell();
+			//				_random_cell_timer.restart();
+			//			}
 
 			if (_refresh_timer.getElapsedTime().asMilliseconds() >= _refresh_period_ms) {
 				_map.generate_next_gen();
@@ -321,7 +323,7 @@ public:
 		return _play;
 	}
 
-	bool is_play() {
+	inline bool is_play() {
 		return _play;
 	}
 
