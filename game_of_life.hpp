@@ -5,6 +5,7 @@
 #ifndef GAME_OF_LIFE__GAME_OF_LIFE_HPP
 #define GAME_OF_LIFE__GAME_OF_LIFE_HPP
 #include <SFML/Graphics.hpp>
+#include <chrono>
 #include <cstring>
 #include <iostream>
 #include <random>
@@ -61,6 +62,38 @@ public:
 	}
 };
 
+class benchmark {
+private:
+	std::chrono::steady_clock::time_point _start;
+
+	bool _started{false};
+
+	long get_elapsed_time() const {
+		return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - _start).count();
+	}
+
+	static void show(int n_cells, long elapsed_ms) {
+		fprintf(stderr, "%f,\n", (float) n_cells / ((float) elapsed_ms / 1000.f));
+	}
+
+public:
+	void start() {
+		_start = std::chrono::steady_clock::now();
+		_started = true;
+	}
+
+	void run(int n_cells) {
+
+		if (!_started) {
+			return;
+		}
+
+		long elapsed_ms = get_elapsed_time();
+		show(n_cells, elapsed_ms);
+		start();
+	}
+};
+
 class tile_map {
 
 private:
@@ -70,6 +103,13 @@ private:
 	int _grid_height;
 
 	const int _n_cells = _grid_height * _grid_width;
+
+public:
+	const int cell_count() const {
+		return _n_cells;
+	}
+
+private:
 	int *_current_generation;
 	int *_next_generation;
 
@@ -204,6 +244,7 @@ private:
 	bool _play;
 	sf::Clock _refresh_timer;
 	sf::Clock _random_cell_timer;
+	sf::Clock _bench_timer;
 	sf::Text _text;
 	sf::Font _font;
 
@@ -212,6 +253,8 @@ private:
 	using asset_name = std::string;
 	using asset = std::vector<std::vector<int>>;
 	std::unordered_map<asset_name, asset> _assets;
+
+	benchmark _bench;
 
 	void draw_texts() {
 		std::string str = (is_play()) ? "running..." : "paused";
@@ -234,6 +277,18 @@ private:
 				_refresh_timer.restart();
 			}
 		}
+
+		bench();
+	}
+
+	void bench() {
+		static int cells = 0;
+		cells += _map.cell_count();
+		if (_bench_timer.getElapsedTime().asSeconds() > 1) {
+			_bench.run(cells);
+			_bench_timer.restart();
+			cells = 0;
+		}
 	}
 
 	void display_text() {
@@ -245,13 +300,17 @@ private:
 	};
 
 public:
-	game(sf::RenderWindow &window, tile_map &map, int refresh_period_ms = 16)
+	game(sf::RenderWindow &window, tile_map &map, int refresh_period_ms = 16, bool enable_bench = false)
 	    : _window(window)
 	    , _map(map)
 	    , _play(false)
 	    , _refresh_period_ms(refresh_period_ms) {
 
 		display_text();
+
+		if (enable_bench) {
+			_bench.start();
+		}
 
 		fprintf(stdout, "Keymaps: \n");
 		fprintf(stdout, " [+] c: clear \n");

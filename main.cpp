@@ -84,12 +84,13 @@ int main() {
 	static constexpr int grid_height = 100;
 	static constexpr int win_width = cell_size * grid_width;
 	static constexpr int win_height = cell_size * grid_height;
+	static constexpr bool enable_benchmark = true;
 
 	sf::RenderWindow window(sf::VideoMode(win_width, win_height), "Conway's Game of Life");
 	window.setVerticalSyncEnabled(true);// call it once, after creating the window
 
 	jjo::game_of_life::tile_map map(window, cell_size, grid_width, grid_height);
-	jjo::game_of_life::game game(window, map, refresh_period_ms);
+	jjo::game_of_life::game game(window, map, refresh_period_ms, enable_benchmark);
 
 	push_assets(game);
 
