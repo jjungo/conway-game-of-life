@@ -105,6 +105,8 @@ private:
 
 	const int _n_cells = _grid_height * _grid_width;
 
+	std::unordered_map<int, std::shared_ptr<cell>> _cells;
+
 public:
 	int cell_count() const {
 		return _n_cells;
@@ -137,23 +139,35 @@ private:
 		}
 	}
 
+	void shuffle_buffers() const {
+		simple_rand_generator rnd(0, 1);
+		for (int i = 0; i < _n_cells; i++) {
+			_current_generation[i] = rnd.get_next_rand();
+			_next_generation[i] = rnd.get_next_rand();
+		}
+	}
+
+	void create_cells() {
+		for (int x = 0; x < _grid_width; x++) {
+			for (int y = 0; y < _grid_width; y++) {
+				_cells.insert({x + y * _grid_width, std::make_shared<cell>(_window, x, y, _cell_size)});
+			}
+		}
+	}
+
 public:
 	tile_map(sf::RenderWindow &window, int cell_size, int grid_width, int grid_height)
 	    : _window(window)
 	    , _cell_size(cell_size)
 	    , _grid_width(grid_width)
 	    , _grid_height(grid_height)
-	    , _rand_gen(0, _n_cells) {
-
-		_current_generation = new int[_n_cells];
-		_next_generation = new int[_n_cells];
-		clear();
-
-		simple_rand_generator rnd(0, 1);
-		for (int i = 0; i < _n_cells; i++) {
-			_current_generation[i] = rnd.get_next_rand();
-			_next_generation[i] = rnd.get_next_rand();
-		}
+	    , _current_generation(new int[_n_cells])
+		, _next_generation(new int[_n_cells])
+		, _rand_gen(0, _n_cells)
+	{
+		//		clear();
+		shuffle_buffers();
+		create_cells();
 	}
 
 	~tile_map() {
@@ -170,14 +184,15 @@ public:
 		}
 	}
 
-	void generate_and_draw_current_gen() const {
+	void generate_and_draw_current_gen() {
 		for (int x = 0; x < _grid_width; x++) {
 			for (int y = 0; y < _grid_height; y++) {
-				cell cell(_window, x, y, _cell_size);
-				cell.setColor((is_alive(x, y))
-				                  ? sf::Color::Yellow
-				                  : sf::Color::Black);
-				cell.draw();
+
+				auto cell = _cells[x + y * _grid_width];
+				cell->setColor((is_alive(x, y))
+				                   ? sf::Color::Yellow
+				                   : sf::Color::Black);
+				cell->draw();
 			}
 		}
 	}
@@ -187,7 +202,7 @@ public:
 		_current_generation[n] = cell_status::alive;
 	}
 
-	void generate_next_gen() const {
+	void generate_next_gen() {
 
 		for (int x = 0; x < _grid_width; x++) {
 			int x0 = ((x + _grid_width - 1) % _grid_width);
@@ -266,6 +281,7 @@ private:
 
 	void draw_tile_map() {
 		_map.generate_and_draw_current_gen();
+
 		if (is_play()) {
 
 			//			if (_random_cell_timer.getElapsedTime().asMilliseconds() > 10.0) {
@@ -305,7 +321,7 @@ public:
 	game(sf::RenderWindow &window, tile_map &map, int refresh_period_ms = 16, bool enable_bench = false)
 	    : _window(window)
 	    , _map(map)
-	    , _play(false)
+	    , _play(true)
 	    , _refresh_period_ms(refresh_period_ms) {
 
 		display_text();
