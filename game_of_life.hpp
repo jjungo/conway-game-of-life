@@ -33,6 +33,10 @@ public:
 class benchmark {
 private:
 	std::chrono::steady_clock::time_point _start;
+	sf::Clock _bench_timer;
+	const sf::Clock _game_clock;
+	float _frame_rate;
+	float _last_timestamp;
 
 	bool _started{false};
 
@@ -40,8 +44,26 @@ private:
 		return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - _start).count();
 	}
 
-	static void show(int n_cells, long elapsed_ms) {
-		fprintf(stderr, "%f,\n", (float) n_cells / ((float) elapsed_ms / 1000.f));
+	static void show_cell_count(int cell_count, long elapsed_ms) {
+		fprintf(stderr, "%f,\n", (float) cell_count / ((float) elapsed_ms / 1000.f));
+	}
+
+	void compute_and_show_cell_count(int cell_count) {
+		static int cells = 0;
+		cells += cell_count;
+		if (_bench_timer.getElapsedTime().asSeconds() > 1) {
+
+			if (!_started) {
+				return;
+			}
+
+			long elapsed_ms = get_elapsed_time();
+			show_cell_count(cells, elapsed_ms);
+			start();
+
+			_bench_timer.restart();
+			cells = 0;
+		}
 	}
 
 public:
@@ -50,15 +72,19 @@ public:
 		_started = true;
 	}
 
-	void run(int n_cells) {
+	void run(int cell_count) {
+		compute_and_show_cell_count(cell_count);
+		update_frame_rate();
+	}
 
-		if (!_started) {
-			return;
-		}
+	void update_frame_rate() {
+		auto now = _game_clock.getElapsedTime().asSeconds();
+		_frame_rate = 1.f / (now - _last_timestamp);
+		_last_timestamp = now;
+	}
 
-		long elapsed_ms = get_elapsed_time();
-		show(n_cells, elapsed_ms);
-		start();
+	float get_frame_rate() const {
+		return _frame_rate;
 	}
 };
 
@@ -127,8 +153,8 @@ public:
 	    , _next_generation(new int[_n_cells])
 	    , _rand_gen(0, _n_cells) {
 		//		clear();
-		shuffle_buffers();
 		create_cells();
+		shuffle_grid();
 	}
 
 	~tile_map() {
@@ -216,6 +242,14 @@ public:
 		memset(_next_generation, 0, _n_cells * sizeof(*_next_generation));
 	}
 
+	void shuffle_grid() const {
+		simple_rand_generator rnd(0, 1);
+		for (int i = 0; i < _n_cells; i++) {
+			_current_generation[i] = rnd.get_next_rand();
+			_next_generation[i] = rnd.get_next_rand();
+		}
+	}
+
 private:
 	bool is_alive(int x, int y) const {
 		return _current_generation[x + y * _grid_width] == alive;
@@ -230,14 +264,6 @@ private:
 			_next_generation[index] = dead;
 		} else if (neib == 3) {
 			_next_generation[index] = alive;
-		}
-	}
-
-	void shuffle_buffers() const {
-		simple_rand_generator rnd(0, 1);
-		for (int i = 0; i < _n_cells; i++) {
-			_current_generation[i] = rnd.get_next_rand();
-			_next_generation[i] = rnd.get_next_rand();
 		}
 	}
 
@@ -257,10 +283,13 @@ private:
 	tile_map &_map;
 
 	bool _play;
+	bool _verbose;
+	bool _shuffle_grid;
 	sf::Clock _refresh_timer;
 	sf::Clock _random_cell_timer;
 	sf::Clock _bench_timer;
-	sf::Text _text;
+	sf::Text _is_playing_text;
+	sf::Text _frame_rate_text;
 	sf::Font _font;
 
 	int _refresh_period_ms;
@@ -276,9 +305,11 @@ public:
 	    : _window(window)
 	    , _map(map)
 	    , _play(true)
+	    , _verbose(true)
+	    , _shuffle_grid(false)
 	    , _refresh_period_ms(refresh_period_ms) {
 
-		display_text();
+		setup_text();
 
 		if (enable_bench) {
 			_bench.start();
@@ -317,6 +348,10 @@ public:
 					_play = !_play;
 				} else if (sf::Keyboard::isKeyPressed(sf::Keyboard::C)) {
 					_map.clear();
+				} else if (sf::Keyboard::isKeyPressed(sf::Keyboard::V)) {
+					_verbose = !_verbose;
+				} else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+					_shuffle_grid = !_shuffle_grid;
 				}
 				break;
 			}
@@ -328,7 +363,17 @@ public:
 
 	void draw() {
 		draw_tile_map();
-		draw_texts();
+
+		if (_verbose) {
+			draw_texts();
+		}
+
+		if (_shuffle_grid) {
+			_shuffle_grid = false;
+			_map.shuffle_grid();
+		}
+
+		_bench.run(_map.cell_count());
 	}
 
 	void push_asset(const std::pair<asset_name, asset> &asset) {
@@ -357,8 +402,13 @@ public:
 private:
 	void draw_texts() {
 		std::string str = (is_play()) ? "running..." : "paused";
-		_text.setString(str);
-		_window.draw(_text);
+		_is_playing_text.setString(str);
+
+		std::string frame_rate_str = std::to_string(_bench.get_frame_rate());
+		_frame_rate_text.setString(frame_rate_str);
+
+		_window.draw(_is_playing_text);
+		_window.draw(_frame_rate_text);
 	}
 
 	void draw_tile_map() {
@@ -378,25 +428,19 @@ private:
 			}
 		}
 
-		bench();
 	}
 
-	void bench() {
-		static int cells = 0;
-		cells += _map.cell_count();
-		if (_bench_timer.getElapsedTime().asSeconds() > 1) {
-			_bench.run(cells);
-			_bench_timer.restart();
-			cells = 0;
-		}
-	}
-
-	void display_text() {
+	void setup_text() {
 		_font.loadFromFile("../fonts/arial.ttf");
-		_text.setFont(_font);
-		_text.setCharacterSize(15);
-		_text.setFillColor(sf::Color::White);
-		_text.setPosition(10, 0);
+		_is_playing_text.setFont(_font);
+		_is_playing_text.setCharacterSize(20);
+		_is_playing_text.setFillColor(sf::Color::Cyan);
+		_is_playing_text.setPosition(10, 0);
+
+		_frame_rate_text.setFont(_font);
+		_frame_rate_text.setCharacterSize(20);
+		_frame_rate_text.setFillColor(sf::Color::Cyan);
+		_frame_rate_text.setPosition(10, 60);
 	};
 };
 
