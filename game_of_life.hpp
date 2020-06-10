@@ -14,39 +14,6 @@
 
 namespace jjo::game_of_life {
 
-class cell {
-private:
-	sf::RenderWindow &_window;
-	int _pos_x;
-	int _pos_y;
-	int _size;
-
-	sf::RectangleShape _shape;
-
-public:
-	cell(sf::RenderWindow &window, int x, int y, int size)
-	    : _window(window)
-	    , _pos_x(x)
-	    , _pos_y(y)
-	    , _size(size)
-	    , _shape(sf::Vector2f(_size, _size)) {
-
-		_shape.setPosition(_pos_x * _size, _pos_y * _size);
-		// TODO add this configurable
-		//		_shape.setOutlineThickness(0.8);
-		//		_shape.setOutlineColor(sf::Color::Green);
-	}
-
-public:
-	void setColor(const sf::Color &color) {
-		_shape.setFillColor(color);
-	}
-
-	void draw() {
-		_window.draw(_shape);
-	}
-};
-
 class simple_rand_generator {
 private:
 	std::random_device _rd;
@@ -66,6 +33,10 @@ public:
 class benchmark {
 private:
 	std::chrono::steady_clock::time_point _start;
+	sf::Clock _bench_timer;
+	const sf::Clock _game_clock;
+	float _frame_rate;
+	float _last_timestamp;
 
 	bool _started{false};
 
@@ -77,21 +48,43 @@ private:
 		fprintf(stderr, "%f,\n", (float) n_cells / ((float) elapsed_ms / 1000.f));
 	}
 
+	void show_cell_stat(int cell_count) {
+		static int cells = 0;
+		cells += cell_count;
+		if (_bench_timer.getElapsedTime().asSeconds() > 1) {
+
+			if (!_started) {
+				return;
+			}
+
+			long elapsed_ms = get_elapsed_time();
+			show(cells, elapsed_ms);
+			start();
+
+			_bench_timer.restart();
+			cells = 0;
+		}
+	}
+
 public:
 	void start() {
 		_start = std::chrono::steady_clock::now();
 		_started = true;
 	}
 
-	void run(int n_cells) {
+	void run(int cell_count) {
+		show_cell_stat(cell_count);
+		update_frame_rate();
+	}
 
-		if (!_started) {
-			return;
-		}
+	void update_frame_rate() {
+		auto now = _game_clock.getElapsedTime().asSeconds();
+		_frame_rate = 1.f / (now - _last_timestamp);
+		_last_timestamp = now;
+	}
 
-		long elapsed_ms = get_elapsed_time();
-		show(n_cells, elapsed_ms);
-		start();
+	float get_frame_rate() const {
+		return _frame_rate;
 	}
 };
 
@@ -102,58 +95,21 @@ private:
 	int _cell_size;
 	int _grid_width;
 	int _grid_height;
+	int _n_cells;
 
-	const int _n_cells = _grid_height * _grid_width;
-
-	std::unordered_map<int, std::shared_ptr<cell>> _cells;
-
-public:
-	int cell_count() const {
-		return _n_cells;
-	}
-
-private:
 	int *_current_generation;
 	int *_next_generation;
 
 	simple_rand_generator _rand_gen;
+	sf::Vertex *_cells;
 
 	enum cell_status {
 		dead = 0,
 		alive
 	};
 
-	bool is_alive(int x, int y) const {
-		return _current_generation[x + y * _grid_width] == alive;
-	}
-
-	inline void generate_next_cell(int x, int y, int &neib) const {
-
-		int index = x + y * _grid_width;
-
-		_next_generation[index] = _current_generation[index];
-		if (_current_generation[index] == alive && (neib < 2 || neib > 3)) {
-			_next_generation[index] = dead;
-		} else if (neib == 3) {
-			_next_generation[index] = alive;
-		}
-	}
-
-	void shuffle_buffers() const {
-		simple_rand_generator rnd(0, 1);
-		for (int i = 0; i < _n_cells; i++) {
-			_current_generation[i] = rnd.get_next_rand();
-			_next_generation[i] = rnd.get_next_rand();
-		}
-	}
-
-	void create_cells() {
-		for (int x = 0; x < _grid_width; x++) {
-			for (int y = 0; y < _grid_width; y++) {
-				_cells.insert({x + y * _grid_width, std::make_shared<cell>(_window, x, y, _cell_size)});
-			}
-		}
-	}
+	sf::Color alive_color = sf::Color::Yellow;
+	sf::Color dead_color = sf::Color::Black;
 
 public:
 	tile_map(sf::RenderWindow &window, int cell_size, int grid_width, int grid_height)
@@ -161,40 +117,58 @@ public:
 	    , _cell_size(cell_size)
 	    , _grid_width(grid_width)
 	    , _grid_height(grid_height)
+	    , _n_cells(_grid_height * _grid_width)
 	    , _current_generation(new int[_n_cells])
-		, _next_generation(new int[_n_cells])
-		, _rand_gen(0, _n_cells)
-	{
-		//		clear();
-		shuffle_buffers();
-		create_cells();
+	    , _next_generation(new int[_n_cells])
+	    , _rand_gen(0, _n_cells)
+	    , _cells(new sf::Vertex[_n_cells]) {
+
+		clear();
+		shuffle_grid();
+		//		create_cells();
 	}
 
 	~tile_map() {
 		delete[] _current_generation;
 		delete[] _next_generation;
+		delete[] _cells;
+	}
+
+	int cell_count() const {
+		return _n_cells;
 	}
 
 	void on_click(int mx, int my) {
 		int x = mx / _cell_size;
 		int y = my / _cell_size;
+
+		fprintf(stderr, "[+]%d %d [%d]\n", x, y, x + y * _grid_width);
+
 		if (x >= 0 && x < _grid_width && y >= 0 && y < _grid_height) {
 			fprintf(stderr, "%d %d [%d]\n", x, y, x + y * _grid_width);
 			_current_generation[x + y * _grid_width] = !_current_generation[x + y * _grid_width];
+			update_cell(x, y);
 		}
 	}
 
 	void generate_and_draw_current_gen() {
-		for (int x = 0; x < _grid_width; x++) {
-			for (int y = 0; y < _grid_height; y++) {
+		//		for (int x = 0; x < _grid_width; x++) {
+		//			for (int y = 0; y < _grid_height; y++) {
+		//
+		//				//				auto cell = _cells[x + y * _grid_width];
+		//				auto color = (is_alive(x, y)
+		//				                  ? sf::Color::Yellow
+		//				                  : sf::Color::Black);
+		//				//				cell->draw();
+		//
+		//				_cells.setPixel(x, y, color);
+		//			}
+		//		}
 
-				auto cell = _cells[x + y * _grid_width];
-				cell->setColor((is_alive(x, y))
-				                   ? sf::Color::Yellow
-				                   : sf::Color::Black);
-				cell->draw();
-			}
-		}
+		//		_texture.update(_cells);
+		//		_window.draw(_sprite);
+
+		_window.draw(_cells, _n_cells, sf::Points);
 	}
 
 	void generate_random_cell() {
@@ -250,6 +224,47 @@ public:
 		memset(_current_generation, 0, _n_cells * sizeof(*_current_generation));
 		memset(_next_generation, 0, _n_cells * sizeof(*_next_generation));
 	}
+
+	void shuffle_grid() const {
+		simple_rand_generator rnd(0, 1);
+		for (int i = 0; i < _n_cells; i++) {
+			_current_generation[i] = rnd.get_next_rand();
+			_next_generation[i] = rnd.get_next_rand();
+		}
+	}
+
+private:
+	inline bool is_alive(int x, int y) const {
+		return _current_generation[x + y * _grid_width] == alive;
+	}
+
+	inline void generate_next_cell(int x, int y, int &neib) const {
+
+		int index = x + y * _grid_width;
+
+		_next_generation[index] = _current_generation[index];
+		if (_current_generation[index] == alive && (neib < 2 || neib > 3)) {
+			_next_generation[index] = dead;
+		} else if (neib == 3) {
+			_next_generation[index] = alive;
+		}
+
+		update_cell(x, y);
+	}
+
+	void update_cell(int x, int y) const {
+		int index = x + y * _grid_width;
+		_cells[index].position = sf::Vector2f(x, y);
+		_cells[index].color = (_next_generation[index] == alive) ? alive_color : dead_color;
+	}
+
+	//	void create_cells() {
+	//		for (int x = 0; x < _grid_width; x++) {
+	//			for (int y = 0; y < _grid_width; y++) {
+	//				_cells.insert({x + y * _grid_width, std::make_shared<cell>(_window, x, y, _cell_size)});
+	//			}
+	//		}
+	//	}
 };
 
 class game {
@@ -259,10 +274,12 @@ private:
 	tile_map &_map;
 
 	bool _play;
+	bool _verbose;
+	bool _shuffle_grid;
 	sf::Clock _refresh_timer;
 	sf::Clock _random_cell_timer;
-	sf::Clock _bench_timer;
-	sf::Text _text;
+	sf::Text _is_playing_text;
+	sf::Text _frame_rate_text;
 	sf::Font _font;
 
 	int _refresh_period_ms;
@@ -275,8 +292,12 @@ private:
 
 	void draw_texts() {
 		std::string str = (is_play()) ? "running..." : "paused";
-		_text.setString(str);
-		_window.draw(_text);
+		_is_playing_text.setString(str);
+		_window.draw(_is_playing_text);
+
+		std::string frame_rate_str = std::to_string(_bench.get_frame_rate());
+		_frame_rate_text.setString(frame_rate_str);
+		_window.draw(_frame_rate_text);
 	}
 
 	void draw_tile_map() {
@@ -289,42 +310,42 @@ private:
 			//				_random_cell_timer.restart();
 			//			}
 
-			if (_refresh_timer.getElapsedTime().asMilliseconds() >= _refresh_period_ms) {
-				_map.generate_next_gen();
-				_map.copy_next_to_current_gen();
-				_refresh_timer.restart();
-			}
+			//			if (_refresh_timer.getElapsedTime().asMilliseconds() >= _refresh_period_ms) {
+			_map.generate_next_gen();
+			_map.copy_next_to_current_gen();
+			_refresh_timer.restart();
+			//			}
 		}
 
-		bench();
+		_bench.run(_map.cell_count());
 	}
 
-	void bench() {
-		static int cells = 0;
-		cells += _map.cell_count();
-		if (_bench_timer.getElapsedTime().asSeconds() > 1) {
-			_bench.run(cells);
-			_bench_timer.restart();
-			cells = 0;
-		}
-	}
-
-	void display_text() {
+	void setup_text() {
 		_font.loadFromFile("../fonts/arial.ttf");
-		_text.setFont(_font);
-		_text.setCharacterSize(15);
-		_text.setFillColor(sf::Color::White);
-		_text.setPosition(10, 0);
+		_is_playing_text.setFont(_font);
+		_is_playing_text.setCharacterSize(30);
+		_is_playing_text.setFillColor(sf::Color::Cyan);
+		_is_playing_text.setPosition(10, 0);
+
+		_frame_rate_text.setFont(_font);
+		_frame_rate_text.setCharacterSize(30);
+		_frame_rate_text.setFillColor(sf::Color::Cyan);
+		_frame_rate_text.setPosition(10, 60);
 	};
 
 public:
-	game(sf::RenderWindow &window, tile_map &map, int refresh_period_ms = 16, bool enable_bench = false)
+	game(sf::RenderWindow &window, tile_map &map,
+	     int refresh_period_ms = 16,
+	     bool enable_bench = false,
+	     bool autoplay = false)
 	    : _window(window)
 	    , _map(map)
-	    , _play(true)
+	    , _play(autoplay)
+	    , _verbose(true)
+	    , _shuffle_grid(false)
 	    , _refresh_period_ms(refresh_period_ms) {
 
-		display_text();
+		setup_text();
 
 		if (enable_bench) {
 			_bench.start();
@@ -363,9 +384,14 @@ public:
 					_play = !_play;
 				} else if (sf::Keyboard::isKeyPressed(sf::Keyboard::C)) {
 					_map.clear();
+				} else if (sf::Keyboard::isKeyPressed(sf::Keyboard::V)) {
+					_verbose = !_verbose;
+				} else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+					_shuffle_grid = !_shuffle_grid;
 				}
 				break;
 			}
+
 			default:
 				break;
 			}
@@ -374,7 +400,15 @@ public:
 
 	void draw() {
 		draw_tile_map();
-		draw_texts();
+
+		if (_verbose) {
+			draw_texts();
+		}
+
+		if (_shuffle_grid) {
+			_shuffle_grid = false;
+			_map.shuffle_grid();
+		}
 	}
 
 	void push_asset(const std::pair<asset_name, asset> &asset) {
@@ -399,7 +433,7 @@ public:
 		auto asset = _assets[name];
 		_map.drop_asset(asset, x, y);
 	}
-};
+};// namespace jjo::game_of_life
 
 }// namespace jjo::game_of_life
 #endif//GAME_OF_LIFE__GAME_OF_LIFE_HPP
